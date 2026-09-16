@@ -9,15 +9,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.appprobe.testing.TargetApp
+import com.appprobe.testing.TestScenario
 import com.appprobe.ui.AppDiscoveryScreen
 import com.appprobe.ui.AppDiscoveryViewModel
 import com.appprobe.ui.AppInspectionScreen
 import com.appprobe.ui.AppInspectionViewModel
 import com.appprobe.ui.ScenarioBuilderScreen
 import com.appprobe.ui.ScenarioBuilderViewModel
+import com.appprobe.ui.ScenarioExecutionScreen
+import com.appprobe.ui.ScenarioExecutionViewModel
 import com.appprobe.ui.TargetAppState
 import com.appprobe.ui.TargetAppViewModel
 import com.appprobe.ui.TargetReadyScreen
@@ -40,6 +44,7 @@ class MainActivity : ComponentActivity() {
 
                 var currentScreen by rememberSaveable { mutableStateOf<String>("discovery") }
                 var inspectionPackage by rememberSaveable { mutableStateOf<String?>(null) }
+                var activeScenario by remember { mutableStateOf<TestScenario?>(null) }
 
                 when (currentScreen) {
                     "discovery" -> {
@@ -113,6 +118,29 @@ class MainActivity : ComponentActivity() {
                                 viewModel = scenarioViewModel,
                                 onBack = {
                                     currentScreen = "target_ready"
+                                },
+                                onExecuteScenario = { scenario ->
+                                    activeScenario = scenario
+                                    currentScreen = "scenario_execution"
+                                }
+                            )
+                        } else {
+                            currentScreen = "discovery"
+                        }
+                    }
+
+                    "scenario_execution" -> {
+                        val scenario = activeScenario
+                        if (currentTarget != null && scenario != null) {
+                            val executionViewModel: ScenarioExecutionViewModel =
+                                androidx.lifecycle.viewmodel.compose.viewModel(
+                                    key = "exec_${currentTarget.packageName}_${scenario.actions.size}",
+                                    factory = ScenarioExecutionViewModel.Factory(application, currentTarget, scenario)
+                                )
+                            ScenarioExecutionScreen(
+                                viewModel = executionViewModel,
+                                onBack = {
+                                    currentScreen = "scenario_builder"
                                 }
                             )
                         } else {

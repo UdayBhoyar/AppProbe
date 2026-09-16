@@ -69,3 +69,32 @@
   - Clear scenario and empty state verified
   - Back navigation to Target Ready and Discovery screens verified
   - Logcat clean (0 crashes).
+
+---
+
+## Stage 6: Test Scenario Execution — COMPLETED
+- [x] **Files Created**:
+  - `app/src/main/java/com/appprobe/execution/ExecutionResult.kt`: Domain models for `ActionExecutionStatus` (Pending, Running, Passed, Failed, Cancelled), `ActionResult`, `ExecutionStatus` (Idle, Running, Completed, Failed, Cancelled), and `ScenarioExecutionResult`.
+  - `app/src/main/java/com/appprobe/execution/CommandExecutor.kt`: `CommandExecutor` interface and `DeviceShellExecutor` abstraction supporting command execution and sandbox permission fallback handling.
+  - `app/src/main/java/com/appprobe/execution/ExecutionEngine.kt`: Coroutine-based sequential test scenario execution engine supporting all 8 actions (Launch App, Wait, Tap, Swipe, Press Back, Rotate, Background App, Resume App), step validation, coroutine cancellation, and live `ExecutionProgress` emission.
+  - `app/src/main/java/com/appprobe/ui/ScenarioExecutionViewModel.kt`: ViewModel managing execution lifecycle, coroutine job cancellation, and re-run.
+  - `app/src/main/java/com/appprobe/ui/ScenarioExecutionScreen.kt`: Material 3 Compose execution screen with target header card, execution status banner, linear progress indicator, dynamic action progress list with status badges, and Re-run / Back controls.
+- [x] **Files Modified**:
+  - `app/src/main/java/com/appprobe/ui/ScenarioBuilderScreen.kt`: Added `▶ Execute` button linked to `onExecuteScenario(TestScenario)`.
+  - `app/src/main/java/com/appprobe/MainActivity.kt`: Integrated `"scenario_execution"` route in the navigation flow with parameter passing.
+- [x] **Execution Capabilities**:
+  - Supports Launch App (via package launcher intent, explicit component intent, and shell fallback), Wait (coroutine delay), Tap, Swipe, Press Back, Rotate, Background App, and Resume App.
+  - Live state updates for each step and overall scenario.
+  - Safe error handling and coroutine cancellation.
+- [x] **Build Result**:
+  - `./gradlew assembleDebug` passed with 0 errors.
+- [x] **Emulator Verification (`Pixel_6`, API 35)**:
+  - Full flow tested: `Discovery -> Inspection -> Target Ready -> Scenario Builder -> Scenario Execution -> Complete`.
+  - 4-step scenario executed: Launch App -> Wait 2000 ms -> Press Back -> Launch App.
+  - Live step transitions from Pending -> Running -> Passed verified.
+  - Re-run functionality tested and verified.
+  - Screenshot captured: `screenshot_stage6.png`.
+- [x] **Logcat Result**:
+  - Clean (`adb logcat -d *:E | grep -i com.appprobe` returned 0 errors/crashes).
+- [x] **Remaining Issues**: None.
+

@@ -54,12 +54,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.appprobe.testing.TestAction
 import com.appprobe.testing.TestActionType
+import com.appprobe.testing.TestScenario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScenarioBuilderScreen(
     viewModel: ScenarioBuilderViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onExecuteScenario: (TestScenario) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddActionDialog by remember { mutableStateOf(false) }
@@ -240,12 +242,22 @@ fun ScenarioBuilderScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = { showAddActionDialog = true },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("+ Add Action")
+                    }
+
+                    if (uiState.actions.isNotEmpty()) {
+                        Button(
+                            onClick = { onExecuteScenario(viewModel.toTestScenario()) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("▶ Execute")
+                        }
                     }
                 }
             }
