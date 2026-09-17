@@ -1,5 +1,6 @@
 package com.appprobe.execution
 
+import com.appprobe.analysis.PerformanceAnalysisResult
 import com.appprobe.monitoring.MonitoringSummary
 import com.appprobe.monitoring.PerformanceSample
 import com.appprobe.testing.TestAction
@@ -38,7 +39,7 @@ enum class ExecutionStatus {
 }
 
 /**
- * Complete result of a scenario execution, including execution actions and performance metrics.
+ * Complete result of a scenario execution, including execution actions, performance metrics, and analysis.
  */
 data class ScenarioExecutionResult(
     val targetPackage: String,
@@ -48,10 +49,12 @@ data class ScenarioExecutionResult(
     val actionResults: List<ActionResult> = emptyList(),
     val status: ExecutionStatus,
     val performanceSamples: List<PerformanceSample> = emptyList(),
-    val monitoringSummary: MonitoringSummary? = null
+    val monitoringSummary: MonitoringSummary? = null,
+    val performanceAnalysis: PerformanceAnalysisResult? = null
 ) {
     val totalDurationMs: Long
         get() = if (endTimeMs > startTimeMs) endTimeMs - startTimeMs else 0L
+
 
     val passedCount: Int
         get() = actionResults.count { it.success }

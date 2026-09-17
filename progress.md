@@ -125,6 +125,41 @@
 - [x] **Logcat Result**:
   - Clean (0 crashes, 0 uncaught exceptions).
 - [x] **Known Limitations**:
-  - Android 14/15 SELinux sandbox restricts reading `/proc/<pid>` and cross-UID `ActivityManager.getProcessMemoryInfo` for unprivileged third-party APKs without ADB host daemon transport. Metrics for restricted targets display `Unavailable` / `N/A` safely as designed.
+---
+
+## Stage 8: Performance Analysis & Leak-Suspicion Detection — COMPLETED
+- [x] **Files Created**:
+  - `app/src/main/java/com/appprobe/analysis/PerformanceAnalysisResult.kt`: Domain models for `AnalysisSuspicionStatus` (`INSUFFICIENT_DATA`, `STABLE`, `MEMORY_GROWTH_DETECTED`, `POSSIBLE_MEMORY_RETENTION`), `MemoryTrend` (`STABLE`, `INCREASING`, `DECREASING`, `FLUCTUATING`, `UNKNOWN`), and `PerformanceAnalysisResult` with helper formatters (`initialTotalPssMb`, `finalTotalPssMb`, `growthTotalPssMb`, `growthPercentFormatted`, `peakTotalPssMb`, `hasSuspicion`).
+  - `app/src/main/java/com/appprobe/analysis/PerformanceAnalyzer.kt`: Pure, deterministic analysis engine decoupled from Android framework UI. Implements clear evaluation thresholds:
+    - Minimum valid samples threshold: `MIN_SAMPLES_FOR_ANALYSIS = 3`
+    - Overall memory growth threshold: `GROWTH_THRESHOLD_PERCENT = 5.0%`
+    - Significant memory growth threshold: `RETENTION_THRESHOLD_PERCENT = 15.0%`
+    - Tail retention window: `RETENTION_TAIL_FRACTION = 0.3` (last 30% of samples)
+    - Tail retention threshold: `TAIL_ELEVATION_RATIO = 0.85` (tail average must stay $\ge 85\%$ of peak memory)
+  - `app/src/test/java/com/appprobe/analysis/PerformanceAnalyzerTest.kt`: Comprehensive JUnit 4 test suite verifying all suspicion classifications:
+    - Insufficient data (< 3 samples, all zero PSS, cancelled execution)
+    - Stable memory profile (growth < 5%)
+    - Memory growth detected (growth between 5% and 15%)
+    - Possible memory retention (growth $\ge 15\%$ with sustained tail retention)
+    - Memory spike followed by cleanup (classified as `STABLE` due to low tail retention)
+- [x] **Files Modified**:
+  - `app/src/main/java/com/appprobe/execution/ExecutionResult.kt`: Extended `ScenarioExecutionResult` with `val performanceAnalysis: PerformanceAnalysisResult? = null`.
+  - `app/src/main/java/com/appprobe/execution/ExecutionEngine.kt`: Integrated `PerformanceAnalyzer.analyze(collectedSamples, overallStatus)` in the execution engine's `finally` block to guarantee post-scenario analysis without altering Stage 6 execution logic.
+  - `app/src/main/java/com/appprobe/ui/ScenarioExecutionScreen.kt`: Added Material 3 **PERFORMANCE ANALYSIS** card below the Monitoring Summary with:
+    - Suspicion status badge (Insufficient Data / Stable / Memory Growth Detected / Possible Memory Retention) with color-coded chip.
+    - Explicit explanation rationale text.
+    - Metric grid: Initial PSS, Final PSS, Memory Growth (MB and %), Overall Trend, and Samples Analyzed count.
+- [x] **Analysis Semantics & Safety**:
+  - **No false claims**: Strictly avoids claiming a definitive "memory leak"; uses evidence-based suspicion terms (`Possible Memory Retention`, `Memory Growth Detected`, `Stable Memory Profile`, `Insufficient Data`).
+  - **Zero disruption**: Analysis is performed synchronously at the conclusion of scenario execution without adding background threads or latency.
+- [x] **Test & Build Verification**:
+  - `./gradlew test`: 5/5 unit tests passed in 4s.
+  - `./gradlew assembleDebug`: Debug APK built successfully in 5s with 0 errors.
+- [x] **Emulator Verification (`Pixel_6`, API 35)**:
+  - Executed test scenarios on emulator.
+  - Verified performance analysis card displays correctly post-execution.
+  - Screenshot captured: `screenshot_stage8.png`.
+  - Logcat confirmed 0 crashes and 0 uncaught exceptions.
+
 
 

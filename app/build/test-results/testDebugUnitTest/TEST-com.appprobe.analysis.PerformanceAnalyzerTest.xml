@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.appprobe.analysis.PerformanceAnalyzerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-17T10:23:53.383Z" hostname="fedora" time="0.02">
+  <properties/>
+  <testcase name="testStableMemoryProfile" classname="com.appprobe.analysis.PerformanceAnalyzerTest" time="0.013"/>
+  <testcase name="testMemoryGrowthDetected" classname="com.appprobe.analysis.PerformanceAnalyzerTest" time="0.004"/>
+  <testcase name="testInsufficientDataWhenTooFewSamples" classname="com.appprobe.analysis.PerformanceAnalyzerTest" time="0.001"/>
+  <testcase name="testPossibleMemoryRetentionDetected" classname="com.appprobe.analysis.PerformanceAnalyzerTest" time="0.001"/>
+  <testcase name="testInsufficientDataWhenCancelled" classname="com.appprobe.analysis.PerformanceAnalyzerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

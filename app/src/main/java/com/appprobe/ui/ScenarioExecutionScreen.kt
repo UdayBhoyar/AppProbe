@@ -416,6 +416,141 @@ fun ScenarioExecutionScreen(
                     }
                 }
 
+                // Post-Execution Performance Analysis (Stage 8)
+                val analysis = progress.result?.performanceAnalysis
+                if (progress.status != ExecutionStatus.RUNNING && analysis != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when (analysis.status) {
+                                com.appprobe.analysis.AnalysisSuspicionStatus.POSSIBLE_MEMORY_RETENTION -> Color(0xFFFFF3E0)
+                                com.appprobe.analysis.AnalysisSuspicionStatus.MEMORY_GROWTH_DETECTED -> Color(0xFFFFF8E1)
+                                com.appprobe.analysis.AnalysisSuspicionStatus.STABLE -> Color(0xFFE8F5E9)
+                                com.appprobe.analysis.AnalysisSuspicionStatus.INSUFFICIENT_DATA -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            }
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "PERFORMANCE ANALYSIS",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            when (analysis.status) {
+                                                com.appprobe.analysis.AnalysisSuspicionStatus.POSSIBLE_MEMORY_RETENTION -> Color(0xFFFFE0B2)
+                                                com.appprobe.analysis.AnalysisSuspicionStatus.MEMORY_GROWTH_DETECTED -> Color(0xFFFFF176)
+                                                com.appprobe.analysis.AnalysisSuspicionStatus.STABLE -> Color(0xFFC8E6C9)
+                                                com.appprobe.analysis.AnalysisSuspicionStatus.INSUFFICIENT_DATA -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            },
+                                            RoundedCornerShape(50)
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = analysis.status.displayName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = when (analysis.status) {
+                                            com.appprobe.analysis.AnalysisSuspicionStatus.POSSIBLE_MEMORY_RETENTION -> Color(0xFFE65100)
+                                            com.appprobe.analysis.AnalysisSuspicionStatus.MEMORY_GROWTH_DETECTED -> Color(0xFFF57F17)
+                                            com.appprobe.analysis.AnalysisSuspicionStatus.STABLE -> Color(0xFF2E7D32)
+                                            com.appprobe.analysis.AnalysisSuspicionStatus.INSUFFICIENT_DATA -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = analysis.summaryReason,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            if (analysis.isAnalyzable) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Initial PSS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = analysis.initialTotalPssMb?.let { String.format("%.1f MB", it) } ?: "N/A",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Final PSS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = analysis.finalTotalPssMb?.let { String.format("%.1f MB", it) } ?: "N/A",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Memory Growth", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        val growthMb = analysis.growthTotalPssMb
+                                        Text(
+                                            text = if (growthMb != null) {
+                                                val prefix = if (growthMb >= 0) "+" else ""
+                                                String.format("%s%.1f MB", prefix, growthMb)
+                                            } else "N/A",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Growth %", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        val growthPct = analysis.growthPercentage
+                                        Text(
+                                            text = if (growthPct != null) {
+                                                val prefix = if (growthPct >= 0) "+" else ""
+                                                String.format("%s%.1f%%", prefix, growthPct)
+                                            } else "N/A",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Trend", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = analysis.trend.displayName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Samples Analyzed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = "${analysis.validSampleCount}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Actions List
                 Text(
                     text = "Actions Progress",

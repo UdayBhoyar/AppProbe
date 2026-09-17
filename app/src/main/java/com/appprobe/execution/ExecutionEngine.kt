@@ -181,6 +181,7 @@ class ExecutionEngine(
             sampleCollectorJob.cancel()
             val collectedSamples = performanceMonitor.stopMonitoring()
             val monitoringSummary = MonitoringSummary.fromSamples(collectedSamples)
+            val performanceAnalysis = com.appprobe.analysis.PerformanceAnalyzer.analyze(collectedSamples, overallStatus)
 
             val endTime = System.currentTimeMillis()
             val finalResult = ScenarioExecutionResult(
@@ -191,7 +192,8 @@ class ExecutionEngine(
                 actionResults = actionResults,
                 status = overallStatus,
                 performanceSamples = collectedSamples,
-                monitoringSummary = monitoringSummary
+                monitoringSummary = monitoringSummary,
+                performanceAnalysis = performanceAnalysis
             )
 
             _progress.value = _progress.value.copy(
