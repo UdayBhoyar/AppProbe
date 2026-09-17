@@ -98,3 +98,33 @@
   - Clean (`adb logcat -d *:E | grep -i com.appprobe` returned 0 errors/crashes).
 - [x] **Remaining Issues**: None.
 
+---
+
+## Stage 7: Performance & Resource Monitoring — COMPLETED
+- [x] **Files Created**:
+  - `app/src/main/java/com/appprobe/monitoring/PerformanceSample.kt`: Models for `ProcessMemoryMetrics` (Total PSS, Dalvik PSS, Native PSS, other PSS), `PerformanceSample` (timestamp, targetPackage, PID, actionIndex, actionType, memory, cpuUsagePercent, threadCount), and `MonitoringSummary` (sampleCount, peak/min/avg Total PSS, peak Dalvik/Native heap, peak CPU, peak threads).
+  - `app/src/main/java/com/appprobe/monitoring/PerformanceMonitor.kt`: Non-intrusive asynchronous performance monitoring collector running on `Dispatchers.IO`. Integrates target PID discovery, `ActivityManager.getProcessMemoryInfo`, proc status inspection, CPU delta calculation, and thread counting with non-fatal safety.
+- [x] **Files Modified**:
+  - `app/src/main/java/com/appprobe/execution/ExecutionResult.kt`: Extended `ScenarioExecutionResult` with `performanceSamples: List<PerformanceSample>` and `monitoringSummary: MonitoringSummary?`.
+  - `app/src/main/java/com/appprobe/execution/ExecutionEngine.kt`: Wrapped scenario execution with `PerformanceMonitor` lifecycle (started at execution start, correlated with executing action index/name, stopped in `finally` block, emitting live progress and summary into `ScenarioExecutionResult`).
+  - `app/src/main/java/com/appprobe/ui/ScenarioExecutionScreen.kt`: Added live "RESOURCE MONITOR" card during execution (explicitly separating Total PSS, Java Heap, Native Heap, CPU, Threads, and sample count) and "MONITORING SUMMARY" card upon scenario completion.
+- [x] **Monitoring Architecture**:
+  - Pure evidence collection: No memory leak detection or leak diagnosis conclusions are performed in Stage 7.
+  - Distinct memory dimensions: Total PSS, Dalvik/Java Heap, and Native Heap are explicitly labeled and not conflated.
+  - Strict CPU calculation: Reports `Unavailable` rather than guessing or presenting misleading percentages if delta is not reliably computable.
+  - Fully asynchronous on `Dispatchers.IO` with 1000 ms sampling interval.
+- [x] **Build Result**:
+  - `./gradlew assembleDebug` passed in 1s with 0 errors.
+- [x] **Emulator Verification (`Pixel_6`, API 35)**:
+  - Full flow tested with `Android Easter Egg` and `AppProbe` targets.
+  - Samples collected and correlated across scenario actions.
+  - Live resource monitor and post-execution monitoring summary cards verified.
+  - Cancellation test verified: Execution and monitoring stopped immediately without orphaned coroutines or crashes.
+  - Re-run test verified: Resets previous run state and starts fresh monitoring session.
+  - Screenshots captured: `screenshot_stage7.png`, `screenshot_stage7_complete.png`.
+- [x] **Logcat Result**:
+  - Clean (0 crashes, 0 uncaught exceptions).
+- [x] **Known Limitations**:
+  - Android 14/15 SELinux sandbox restricts reading `/proc/<pid>` and cross-UID `ActivityManager.getProcessMemoryInfo` for unprivileged third-party APKs without ADB host daemon transport. Metrics for restricted targets display `Unavailable` / `N/A` safely as designed.
+
+

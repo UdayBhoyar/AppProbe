@@ -2,15 +2,21 @@ package com.appprobe.execution
 
 import android.content.Context
 import android.content.Intent
+import com.appprobe.monitoring.MonitoringSummary
+import com.appprobe.monitoring.PerformanceMonitor
+import com.appprobe.monitoring.PerformanceSample
 import com.appprobe.testing.TestAction
 import com.appprobe.testing.TestActionType
 import com.appprobe.testing.TestScenario
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -25,12 +31,15 @@ data class ExecutionProgress(
     val totalCount: Int = 0,
     val actionStatuses: Map<String, ActionExecutionStatus> = emptyMap(),
     val currentMessage: String = "",
+    val livePerformanceSample: PerformanceSample? = null,
+    val sampleCount: Int = 0,
     val result: ScenarioExecutionResult? = null
 )
 
 class ExecutionEngine(
     private val context: Context,
-    private val commandExecutor: CommandExecutor = DeviceShellExecutor()
+    private val commandExecutor: CommandExecutor = DeviceShellExecutor(),
+    private val performanceMonitor: PerformanceMonitor = PerformanceMonitor(context, commandExecutor)
 ) {
 
     private val _progress = MutableStateFlow(ExecutionProgress())
@@ -89,9 +98,25 @@ class ExecutionEngine(
 
         val actionResults = mutableListOf<ActionResult>()
         var overallStatus = ExecutionStatus.COMPLETED
+        var activeActionInfo: Pair<Int, String>? = null
+
+        // Start performance monitoring in background
+        var sampleCollectorJob: Job? = null
+        performanceMonitor.startMonitoring(this, scenario.targetPackage) { activeActionInfo }
+        sampleCollectorJob = launch {
+            performanceMonitor.liveSample.collect { sample ->
+                if (sample != null) {
+                    _progress.value = _progress.value.copy(
+                        livePerformanceSample = sample,
+                        sampleCount = _progress.value.sampleCount + 1
+                    )
+                }
+            }
+        }
 
         try {
             for ((index, action) in scenario.actions.withIndex()) {
+                activeActionInfo = Pair(index + 1, action.type.displayName)
                 // Update current action state
                 initialStatuses[action.id] = ActionExecutionStatus.RUNNING
                 _progress.value = _progress.value.copy(
@@ -152,26 +177,39 @@ class ExecutionEngine(
                 status = ExecutionStatus.FAILED,
                 currentMessage = "Execution error: ${e.localizedMessage}"
             )
+        } finally {
+            sampleCollectorJob.cancel()
+            val collectedSamples = performanceMonitor.stopMonitoring()
+            val monitoringSummary = MonitoringSummary.fromSamples(collectedSamples)
+
+            val endTime = System.currentTimeMillis()
+            val finalResult = ScenarioExecutionResult(
+                targetPackage = scenario.targetPackage,
+                scenarioName = scenario.name,
+                startTimeMs = startTime,
+                endTimeMs = endTime,
+                actionResults = actionResults,
+                status = overallStatus,
+                performanceSamples = collectedSamples,
+                monitoringSummary = monitoringSummary
+            )
+
+            _progress.value = _progress.value.copy(
+                status = overallStatus,
+                currentMessage = if (overallStatus == ExecutionStatus.COMPLETED) "Scenario execution completed successfully" else "Scenario execution failed",
+                result = finalResult
+            )
         }
 
-        val endTime = System.currentTimeMillis()
-        val finalResult = ScenarioExecutionResult(
+        return@withContext _progress.value.result ?: ScenarioExecutionResult(
             targetPackage = scenario.targetPackage,
             scenarioName = scenario.name,
             startTimeMs = startTime,
-            endTimeMs = endTime,
-            actionResults = actionResults,
+            endTimeMs = System.currentTimeMillis(),
             status = overallStatus
         )
-
-        _progress.value = _progress.value.copy(
-            status = overallStatus,
-            currentMessage = if (overallStatus == ExecutionStatus.COMPLETED) "Scenario execution completed successfully" else "Scenario execution failed",
-            result = finalResult
-        )
-
-        return@withContext finalResult
     }
+
 
     private data class StepResult(val success: Boolean, val message: String)
 
